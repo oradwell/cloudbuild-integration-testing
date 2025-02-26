@@ -30,8 +30,6 @@ steps:
   args: [
     'build',
     '--tag=web', # use local registry for compatibility with local builds
-    '--tag=gcr.io/$PROJECT_ID/web',
-    '--cache-from=gcr.io/$PROJECT_ID/web:latest',
     'web/.',
   ]
   waitFor: ['web app unit tests']
@@ -41,25 +39,22 @@ steps:
   args: [
     'build',
     '--tag=mysql', # use local registry for compatibility with local builds
-    '--tag=gcr.io/$PROJECT_ID/mysql',
-    '--cache-from', 'gcr.io/$PROJECT_ID/mysql:latest',
     'mysql/.',
   ]
   waitFor: ['-'] # start immediately
 
 - id: 'compose up'
-  name: 'gcr.io/$PROJECT_ID/docker-compose:latest'
-  entrypoint: '/bin/bash'
+  name: 'gcr.io/cloud-builders/docker'
+  entrypoint: docker-compose
   args:
-  - '-c'
-  - |
-    docker-compose up -d 
+  - up
+  - -d 
   env:
   - 'PROJECT_ID=$PROJECT_ID'
   waitFor: ['build web','build db']
 
 - id: 'integration tests'
-  name: 'gcr.io/$PROJECT_ID/docker-compose:latest'
+  name: 'gcr.io/cloud-builders/docker'
   entrypoint: '/bin/bash'
   args: 
     - '-c'
@@ -68,7 +63,3 @@ steps:
       ./test/test-connection.sh -r 20 -i 3 -u http://web:3000
       ./test/test-content.sh -r 20 -i 3 -u http://web:3000 -k 'Chocolate Chip'
   waitFor: ['compose up']
-
-images:
-- gcr.io/$PROJECT_ID/web
-- gcr.io/$PROJECT_ID/mysql
